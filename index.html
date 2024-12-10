@@ -2,131 +2,107 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Interactive 3D Model Viewer</title>
+    <title>3D Model Viewer</title>
     <style>
       body {
         margin: 0;
         padding: 0;
         background: #5c5555; /* Background color */
         font-family: Geneva, sans-serif;
-        color: rgba(0, 0, 0, 0.7);
-        overflow: hidden;
+        color: rgba(0, 0, 0, 0.7); /* Semi-transparent black text */
       }
       #viewer {
-        width: 100vw;
-        height: 100vh;
+        width: 100vw; 
+        height: 100vh; 
         background: #9b9494; /* Viewer background */
         position: relative;
       }
-      #loading-bar {
+      .controls {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        display: none;
-        z-index: 20;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        z-index: 10;
       }
-      #loading-bar span {
-        display: block;
-        font-size: 1.2em;
-        margin-bottom: 10px;
+      .controls button {
+        margin: 5px 0;
+        width: 100px;
+        padding: 5px;
+        font-size: 14px;
       }
-      #loading-progress {
-        width: 200px;
-        height: 20px;
-        background: #ddd;
-        border-radius: 10px;
-        overflow: hidden;
-      }
-      #loading-progress div {
-        height: 100%;
-        background: #3CB371;
-        width: 0;
+      #fps {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 5px;
+        border-radius: 5px;
+        z-index: 10;
+        font-size: 14px;
       }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/examples/js/controls/OrbitControls.js"></script>
+    <script src="./dist/js-3d-model-viewer.js"></script>
   </head>
 
   <body>
     <div id="viewer"></div>
-    <div id="loading-bar">
-      <span>Loading...</span>
-      <div id="loading-progress">
-        <div></div>
-      </div>
+    <div id="fps">FPS: --</div>
+    <div class="controls">
+      <button id="top-view">Top</button>
+      <button id="bottom-view">Bottom</button>
+      <button id="back-view">Back</button>
+      <button id="home-view">Home</button>
     </div>
 
     <script>
-      const viewerElement = document.getElementById('viewer');
-      const loadingBar = document.getElementById('loading-bar');
-      const loadingProgress = document.querySelector('#loading-progress div');
+      // Initialize the 3D model viewer
+      var modelPlayer = this.Js3dModelViewer;
+      var viewerElement = document.getElementById('viewer');
+      var fpsElement = document.getElementById('fps');
 
-      // Scene, Camera, Renderer
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      viewerElement.appendChild(renderer.domElement);
+      var scene = modelPlayer.prepareScene(viewerElement, {
+        grid: true, // Enable grid
+        background: '#D3D3D3', // Viewer background
+        showRuler: true // Enable scaling grid ruler
+      });
 
-      // Lighting
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-      scene.add(ambientLight);
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      directionalLight.position.set(10, 10, 10).normalize();
-      scene.add(directionalLight);
-
-      // Orbit Controls
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.1;
-      controls.zoomSpeed = 0.5;
-
-      // Camera Position
-      camera.position.set(0, 5, 10);
-      controls.update();
-
-      // Loading Manager
-      const manager = new THREE.LoadingManager();
-      manager.onStart = function () {
-        loadingBar.style.display = 'block';
-      };
-      manager.onProgress = function (url, loaded, total) {
-        const progress = Math.floor((loaded / total) * 100);
-        loadingProgress.style.width = `${progress}%`;
-      };
-      manager.onLoad = function () {
-        loadingBar.style.display = 'none';
-      };
-
-      // Load 3D Model
-      const loader = new THREE.ObjectLoader(manager);
-      loader.load(
-        './assets/sample_02.json', // Replace with actual file path
-        (object) => {
-          scene.add(object);
-        },
-        undefined,
-        (error) => {
-          console.error('An error occurred while loading the model', error);
+      // Automatically load Sample 2 on page load
+      modelPlayer.loadObject(
+        scene,
+        './assets/sample_02.obj', 
+        './assets/sample_02.mtl',
+        function () {
+          console.log("Sample 2 loaded successfully");
         }
       );
 
-      // Animate the scene
-      function animate() {
-        controls.update();
-        renderer.render(scene, camera);
-        requestAnimationFrame(animate);
+      // FPS Meter
+      function updateFPS() {
+        const fps = modelPlayer.getFPS();
+        fpsElement.innerText = `FPS: ${fps}`;
+        requestAnimationFrame(updateFPS);
       }
-      animate();
+      updateFPS();
 
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+      // View Controls
+      document.getElementById('top-view').addEventListener('click', function () {
+        modelPlayer.setCameraPosition(scene, { x: 0, y: 50, z: 0 });
       });
+      document.getElementById('bottom-view').addEventListener('click', function () {
+        modelPlayer.setCameraPosition(scene, { x: 0, y: -50, z: 0 });
+      });
+      document.getElementById('back-view').addEventListener('click', function () {
+        modelPlayer.setCameraPosition(scene, { x: -50, y: 0, z: 0 });
+      });
+      document.getElementById('home-view').addEventListener('click', function () {
+        modelPlayer.resetCamera(scene);
+      });
+
+      // Ensure full-screen mode is always enabled
+      modelPlayer.goFullScreen(viewerElement);
     </script>
   </body>
 </html>
