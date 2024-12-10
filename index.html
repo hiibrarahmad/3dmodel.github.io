@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>3D Model Viewer with Cube Controller</title>
+    <title>Interactive 3D Model Viewer</title>
     <style>
       body {
         margin: 0;
@@ -10,7 +10,7 @@
         background: #5c5555; /* Background color */
         font-family: Geneva, sans-serif;
         color: rgba(0, 0, 0, 0.7);
-        overflow: hidden; /* Prevent scrollbars */
+        overflow: hidden;
       }
       #viewer {
         width: 100vw;
@@ -18,127 +18,114 @@
         background: #9b9494; /* Viewer background */
         position: relative;
       }
-      #cube-container {
+      #loading-bar {
         position: absolute;
-        top: 10px;
-        right: 10px;
-        width: 100px;
-        height: 100px;
-        background: transparent;
-        z-index: 10;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        display: none;
+        z-index: 20;
       }
-      canvas {
+      #loading-bar span {
         display: block;
+        font-size: 1.2em;
+        margin-bottom: 10px;
+      }
+      #loading-progress {
+        width: 200px;
+        height: 20px;
+        background: #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      #loading-progress div {
+        height: 100%;
+        background: #3CB371;
+        width: 0;
       }
     </style>
-    <script src="./dist/js-3d-model-viewer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/examples/js/controls/OrbitControls.js"></script>
   </head>
 
   <body>
     <div id="viewer"></div>
-    <div id="cube-container"></div>
+    <div id="loading-bar">
+      <span>Loading...</span>
+      <div id="loading-progress">
+        <div></div>
+      </div>
+    </div>
 
     <script>
-      // Initialize the main 3D viewer
-      var modelPlayer = this.Js3dModelViewer;
-      var viewerElement = document.getElementById('viewer');
-      var scene = modelPlayer.prepareScene(viewerElement, {
-        grid: true,
-        background: '#D3D3D3',
-      });
+      const viewerElement = document.getElementById('viewer');
+      const loadingBar = document.getElementById('loading-bar');
+      const loadingProgress = document.querySelector('#loading-progress div');
 
-      // Load the 3D model (Sample 2)
-      modelPlayer.loadObject(
-        scene,
-        './assets/sample_02.obj',
-        './assets/sample_02.mtl',
-        function () {
-          console.log("Sample 2 loaded successfully");
+      // Scene, Camera, Renderer
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      viewerElement.appendChild(renderer.domElement);
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(10, 10, 10).normalize();
+      scene.add(directionalLight);
+
+      // Orbit Controls
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.1;
+      controls.zoomSpeed = 0.5;
+
+      // Camera Position
+      camera.position.set(0, 5, 10);
+      controls.update();
+
+      // Loading Manager
+      const manager = new THREE.LoadingManager();
+      manager.onStart = function () {
+        loadingBar.style.display = 'block';
+      };
+      manager.onProgress = function (url, loaded, total) {
+        const progress = Math.floor((loaded / total) * 100);
+        loadingProgress.style.width = `${progress}%`;
+      };
+      manager.onLoad = function () {
+        loadingBar.style.display = 'none';
+      };
+
+      // Load 3D Model
+      const loader = new THREE.ObjectLoader(manager);
+      loader.load(
+        './assets/sample_02.json', // Replace with actual file path
+        (object) => {
+          scene.add(object);
+        },
+        undefined,
+        (error) => {
+          console.error('An error occurred while loading the model', error);
         }
       );
 
-      // Ensure full-screen mode
-      modelPlayer.goFullScreen(viewerElement);
-
-      // Add the cube for view control
-      const cubeContainer = document.getElementById('cube-container');
-      const cubeScene = new THREE.Scene();
-      const cubeCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-      const cubeRenderer = new THREE.WebGLRenderer({ alpha: true });
-      cubeRenderer.setSize(100, 100);
-      cubeContainer.appendChild(cubeRenderer.domElement);
-
-      // Create a cube with labeled faces
-      const cubeGeometry = new THREE.BoxGeometry();
-      const cubeMaterials = [
-        new THREE.MeshBasicMaterial({ color: '#ff0000', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Front') }),
-        new THREE.MeshBasicMaterial({ color: '#00ff00', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Back') }),
-        new THREE.MeshBasicMaterial({ color: '#0000ff', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Top') }),
-        new THREE.MeshBasicMaterial({ color: '#ffff00', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Bottom') }),
-        new THREE.MeshBasicMaterial({ color: '#ff00ff', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Left') }),
-        new THREE.MeshBasicMaterial({ color: '#00ffff', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Right') }),
-      ];
-      const cube = new THREE.Mesh(cubeGeometry, cubeMaterials);
-      cubeScene.add(cube);
-
-      cubeCamera.position.z = 2;
-
-      function createTextTexture(text) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 256;
-        canvas.height = 256;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#000000';
-        ctx.font = '24px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-        const texture = new THREE.CanvasTexture(canvas);
-        return texture;
+      // Animate the scene
+      function animate() {
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
       }
+      animate();
 
-      function animateCube() {
-        cubeRenderer.render(cubeScene, cubeCamera);
-        requestAnimationFrame(animateCube);
-      }
-      animateCube();
-
-      // Add event listener to rotate the 3D model based on cube face clicks
-      cubeContainer.addEventListener('click', (event) => {
-        const rect = cubeContainer.getBoundingClientRect();
-        const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(x, y);
-        raycaster.setFromCamera(mouse, cubeCamera);
-
-        const intersects = raycaster.intersectObject(cube);
-        if (intersects.length > 0) {
-          const faceIndex = intersects[0].face.materialIndex;
-          switch (faceIndex) {
-            case 0: // Front
-              modelPlayer.setCameraPosition(scene, { x: 0, y: 0, z: 50 });
-              break;
-            case 1: // Back
-              modelPlayer.setCameraPosition(scene, { x: 0, y: 0, z: -50 });
-              break;
-            case 2: // Top
-              modelPlayer.setCameraPosition(scene, { x: 0, y: 50, z: 0 });
-              break;
-            case 3: // Bottom
-              modelPlayer.setCameraPosition(scene, { x: 0, y: -50, z: 0 });
-              break;
-            case 4: // Left
-              modelPlayer.setCameraPosition(scene, { x: -50, y: 0, z: 0 });
-              break;
-            case 5: // Right
-              modelPlayer.setCameraPosition(scene, { x: 50, y: 0, z: 0 });
-              break;
-          }
-        }
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
       });
     </script>
   </body>
