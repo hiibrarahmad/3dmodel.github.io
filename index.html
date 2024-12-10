@@ -2,107 +2,144 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>3D Model Viewer</title>
+    <title>3D Model Viewer with Cube Controller</title>
     <style>
       body {
         margin: 0;
         padding: 0;
         background: #5c5555; /* Background color */
         font-family: Geneva, sans-serif;
-        color: rgba(0, 0, 0, 0.7); /* Semi-transparent black text */
+        color: rgba(0, 0, 0, 0.7);
+        overflow: hidden; /* Prevent scrollbars */
       }
       #viewer {
-        width: 100vw; 
-        height: 100vh; 
+        width: 100vw;
+        height: 100vh;
         background: #9b9494; /* Viewer background */
         position: relative;
       }
-      .controls {
+      #cube-container {
         position: absolute;
         top: 10px;
         right: 10px;
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 10px;
-        z-index: 10;
-      }
-      .controls button {
-        margin: 5px 0;
         width: 100px;
-        padding: 5px;
-        font-size: 14px;
-      }
-      #fps {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(255, 255, 255, 0.8);
-        padding: 5px;
-        border-radius: 5px;
+        height: 100px;
+        background: transparent;
         z-index: 10;
-        font-size: 14px;
+      }
+      canvas {
+        display: block;
       }
     </style>
     <script src="./dist/js-3d-model-viewer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/three.min.js"></script>
   </head>
 
   <body>
     <div id="viewer"></div>
-    <div id="fps">FPS: --</div>
-    <div class="controls">
-      <button id="top-view">Top</button>
-      <button id="bottom-view">Bottom</button>
-      <button id="back-view">Back</button>
-      <button id="home-view">Home</button>
-    </div>
+    <div id="cube-container"></div>
 
     <script>
-      // Initialize the 3D model viewer
+      // Initialize the main 3D viewer
       var modelPlayer = this.Js3dModelViewer;
       var viewerElement = document.getElementById('viewer');
-      var fpsElement = document.getElementById('fps');
-
       var scene = modelPlayer.prepareScene(viewerElement, {
-        grid: true, // Enable grid
-        background: '#D3D3D3', // Viewer background
-        showRuler: true // Enable scaling grid ruler
+        grid: true,
+        background: '#D3D3D3',
       });
 
-      // Automatically load Sample 2 on page load
+      // Load the 3D model (Sample 2)
       modelPlayer.loadObject(
         scene,
-        './assets/sample_02.obj', 
+        './assets/sample_02.obj',
         './assets/sample_02.mtl',
         function () {
           console.log("Sample 2 loaded successfully");
         }
       );
 
-      // FPS Meter
-      function updateFPS() {
-        const fps = modelPlayer.getFPS();
-        fpsElement.innerText = `FPS: ${fps}`;
-        requestAnimationFrame(updateFPS);
-      }
-      updateFPS();
-
-      // View Controls
-      document.getElementById('top-view').addEventListener('click', function () {
-        modelPlayer.setCameraPosition(scene, { x: 0, y: 50, z: 0 });
-      });
-      document.getElementById('bottom-view').addEventListener('click', function () {
-        modelPlayer.setCameraPosition(scene, { x: 0, y: -50, z: 0 });
-      });
-      document.getElementById('back-view').addEventListener('click', function () {
-        modelPlayer.setCameraPosition(scene, { x: -50, y: 0, z: 0 });
-      });
-      document.getElementById('home-view').addEventListener('click', function () {
-        modelPlayer.resetCamera(scene);
-      });
-
-      // Ensure full-screen mode is always enabled
+      // Ensure full-screen mode
       modelPlayer.goFullScreen(viewerElement);
+
+      // Add the cube for view control
+      const cubeContainer = document.getElementById('cube-container');
+      const cubeScene = new THREE.Scene();
+      const cubeCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+      const cubeRenderer = new THREE.WebGLRenderer({ alpha: true });
+      cubeRenderer.setSize(100, 100);
+      cubeContainer.appendChild(cubeRenderer.domElement);
+
+      // Create a cube with labeled faces
+      const cubeGeometry = new THREE.BoxGeometry();
+      const cubeMaterials = [
+        new THREE.MeshBasicMaterial({ color: '#ff0000', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Front') }),
+        new THREE.MeshBasicMaterial({ color: '#00ff00', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Back') }),
+        new THREE.MeshBasicMaterial({ color: '#0000ff', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Top') }),
+        new THREE.MeshBasicMaterial({ color: '#ffff00', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Bottom') }),
+        new THREE.MeshBasicMaterial({ color: '#ff00ff', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Left') }),
+        new THREE.MeshBasicMaterial({ color: '#00ffff', side: THREE.DoubleSide, transparent: true, opacity: 0.8, map: createTextTexture('Right') }),
+      ];
+      const cube = new THREE.Mesh(cubeGeometry, cubeMaterials);
+      cubeScene.add(cube);
+
+      cubeCamera.position.z = 2;
+
+      function createTextTexture(text) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 256;
+        canvas.height = 256;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#000000';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+        const texture = new THREE.CanvasTexture(canvas);
+        return texture;
+      }
+
+      function animateCube() {
+        cubeRenderer.render(cubeScene, cubeCamera);
+        requestAnimationFrame(animateCube);
+      }
+      animateCube();
+
+      // Add event listener to rotate the 3D model based on cube face clicks
+      cubeContainer.addEventListener('click', (event) => {
+        const rect = cubeContainer.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(x, y);
+        raycaster.setFromCamera(mouse, cubeCamera);
+
+        const intersects = raycaster.intersectObject(cube);
+        if (intersects.length > 0) {
+          const faceIndex = intersects[0].face.materialIndex;
+          switch (faceIndex) {
+            case 0: // Front
+              modelPlayer.setCameraPosition(scene, { x: 0, y: 0, z: 50 });
+              break;
+            case 1: // Back
+              modelPlayer.setCameraPosition(scene, { x: 0, y: 0, z: -50 });
+              break;
+            case 2: // Top
+              modelPlayer.setCameraPosition(scene, { x: 0, y: 50, z: 0 });
+              break;
+            case 3: // Bottom
+              modelPlayer.setCameraPosition(scene, { x: 0, y: -50, z: 0 });
+              break;
+            case 4: // Left
+              modelPlayer.setCameraPosition(scene, { x: -50, y: 0, z: 0 });
+              break;
+            case 5: // Right
+              modelPlayer.setCameraPosition(scene, { x: 50, y: 0, z: 0 });
+              break;
+          }
+        }
+      });
     </script>
   </body>
 </html>
