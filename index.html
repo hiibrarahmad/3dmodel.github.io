@@ -7,14 +7,14 @@
       body {
         margin: 0;
         padding: 0;
-        background: #5c5555; /* Background color */
+        background: #5c5555;
         font-family: Geneva, sans-serif;
-        color: rgba(0, 0, 0, 0.7); /* Semi-transparent black text */
+        color: rgba(0, 0, 0, 0.7);
       }
       #viewer {
         width: 100vw; 
         height: 100vh; 
-        background: #9b9494; /* Viewer background */
+        background: #9b9494;
         position: relative;
       }
       .controls {
@@ -82,22 +82,25 @@
       var loadingElement = document.getElementById('loading');
 
       var scene = modelPlayer.prepareScene(viewerElement, {
-        grid: true, // Enable grid
-        background: '#D3D3D3', // Viewer background
-        showRuler: true // Enable scaling grid ruler
+        grid: true, 
+        background: '#D3D3D3', 
+        showRuler: true 
       });
 
       // Load 3D model with progress updates
       modelPlayer.loadObject(
         scene,
-        './assets/sample_02.obj', 
+        './assets/sample_02.obj',
         './assets/sample_02.mtl',
-        function (progress) {
-          const percentage = Math.floor(progress * 100);
-          loadingElement.innerText = `Loading: ${percentage}%`;
-          if (progress >= 1) {
+        {
+          onProgress: function (progress) {
+            const percentage = Math.floor(progress * 100);
+            loadingElement.innerText = `Loading: ${percentage}%`;
+          },
+          onComplete: function () {
             loadingElement.style.display = 'none';
-          }
+            console.log("Model loaded successfully");
+          },
         }
       );
 
@@ -125,16 +128,16 @@
 
       // Zoom and Rotate Controls
       document.getElementById('zoom-in').addEventListener('click', function () {
-        modelPlayer.zoom(scene, 1.1); // Zoom in
+        modelPlayer.zoom(scene, 1.1); 
       });
       document.getElementById('zoom-out').addEventListener('click', function () {
-        modelPlayer.zoom(scene, 0.9); // Zoom out
+        modelPlayer.zoom(scene, 0.9); 
       });
       document.getElementById('rotate-left').addEventListener('click', function () {
-        modelPlayer.rotate(scene, { y: -10 }); // Rotate left
+        modelPlayer.rotate(scene, { y: -10 });
       });
       document.getElementById('rotate-right').addEventListener('click', function () {
-        modelPlayer.rotate(scene, { y: 10 }); // Rotate right
+        modelPlayer.rotate(scene, { y: 10 });
       });
 
       // Ensure full-screen mode is always enabled
