@@ -7,17 +7,41 @@
       body {
         margin: 0;
         padding: 0;
-        background: #5c5555; /* Light grey background */
+        background: #5c5555; /* Background color */
         font-family: Geneva, sans-serif;
         color: rgba(0, 0, 0, 0.7); /* Semi-transparent black text */
       }
       #viewer {
         width: 100vw; 
         height: 100vh; 
-        background: #9b9494; /* Light grey background */
+        background: #9b9494; /* Viewer background */
+        position: relative;
       }
-      canvas {
-        display: block;
+      .controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        z-index: 10;
+      }
+      .controls button {
+        margin: 5px 0;
+        width: 100px;
+        padding: 5px;
+        font-size: 14px;
+      }
+      #fps {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 5px;
+        border-radius: 5px;
+        z-index: 10;
+        font-size: 14px;
       }
     </style>
     <script src="./dist/js-3d-model-viewer.js"></script>
@@ -25,13 +49,24 @@
 
   <body>
     <div id="viewer"></div>
+    <div id="fps">FPS: --</div>
+    <div class="controls">
+      <button id="top-view">Top</button>
+      <button id="bottom-view">Bottom</button>
+      <button id="back-view">Back</button>
+      <button id="home-view">Home</button>
+    </div>
+
     <script>
       // Initialize the 3D model viewer
       var modelPlayer = this.Js3dModelViewer;
       var viewerElement = document.getElementById('viewer');
+      var fpsElement = document.getElementById('fps');
+
       var scene = modelPlayer.prepareScene(viewerElement, {
-        grid: false, // Disable grid for simplicity
-        background: '#D3D3D3' // Light grey background
+        grid: true, // Enable grid
+        background: '#D3D3D3', // Viewer background
+        showRuler: true // Enable scaling grid ruler
       });
 
       // Automatically load Sample 2 on page load
@@ -43,6 +78,28 @@
           console.log("Sample 2 loaded successfully");
         }
       );
+
+      // FPS Meter
+      function updateFPS() {
+        const fps = modelPlayer.getFPS();
+        fpsElement.innerText = `FPS: ${fps}`;
+        requestAnimationFrame(updateFPS);
+      }
+      updateFPS();
+
+      // View Controls
+      document.getElementById('top-view').addEventListener('click', function () {
+        modelPlayer.setCameraPosition(scene, { x: 0, y: 50, z: 0 });
+      });
+      document.getElementById('bottom-view').addEventListener('click', function () {
+        modelPlayer.setCameraPosition(scene, { x: 0, y: -50, z: 0 });
+      });
+      document.getElementById('back-view').addEventListener('click', function () {
+        modelPlayer.setCameraPosition(scene, { x: -50, y: 0, z: 0 });
+      });
+      document.getElementById('home-view').addEventListener('click', function () {
+        modelPlayer.resetCamera(scene);
+      });
 
       // Ensure full-screen mode is always enabled
       modelPlayer.goFullScreen(viewerElement);
