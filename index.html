@@ -43,6 +43,18 @@
         z-index: 10;
         font-size: 14px;
       }
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 16px;
+        z-index: 20;
+      }
     </style>
     <script src="./dist/js-3d-model-viewer.js"></script>
   </head>
@@ -50,11 +62,16 @@
   <body>
     <div id="viewer"></div>
     <div id="fps">FPS: --</div>
+    <div id="loading">Loading: 0%</div>
     <div class="controls">
       <button id="top-view">Top</button>
       <button id="bottom-view">Bottom</button>
       <button id="back-view">Back</button>
       <button id="home-view">Home</button>
+      <button id="zoom-in">Zoom In</button>
+      <button id="zoom-out">Zoom Out</button>
+      <button id="rotate-left">Rotate Left</button>
+      <button id="rotate-right">Rotate Right</button>
     </div>
 
     <script>
@@ -62,6 +79,7 @@
       var modelPlayer = this.Js3dModelViewer;
       var viewerElement = document.getElementById('viewer');
       var fpsElement = document.getElementById('fps');
+      var loadingElement = document.getElementById('loading');
 
       var scene = modelPlayer.prepareScene(viewerElement, {
         grid: true, // Enable grid
@@ -69,13 +87,17 @@
         showRuler: true // Enable scaling grid ruler
       });
 
-      // Automatically load Sample 2 on page load
+      // Load 3D model with progress updates
       modelPlayer.loadObject(
         scene,
         './assets/sample_02.obj', 
         './assets/sample_02.mtl',
-        function () {
-          console.log("Sample 2 loaded successfully");
+        function (progress) {
+          const percentage = Math.floor(progress * 100);
+          loadingElement.innerText = `Loading: ${percentage}%`;
+          if (progress >= 1) {
+            loadingElement.style.display = 'none';
+          }
         }
       );
 
@@ -99,6 +121,20 @@
       });
       document.getElementById('home-view').addEventListener('click', function () {
         modelPlayer.resetCamera(scene);
+      });
+
+      // Zoom and Rotate Controls
+      document.getElementById('zoom-in').addEventListener('click', function () {
+        modelPlayer.zoom(scene, 1.1); // Zoom in
+      });
+      document.getElementById('zoom-out').addEventListener('click', function () {
+        modelPlayer.zoom(scene, 0.9); // Zoom out
+      });
+      document.getElementById('rotate-left').addEventListener('click', function () {
+        modelPlayer.rotate(scene, { y: -10 }); // Rotate left
+      });
+      document.getElementById('rotate-right').addEventListener('click', function () {
+        modelPlayer.rotate(scene, { y: 10 }); // Rotate right
       });
 
       // Ensure full-screen mode is always enabled
